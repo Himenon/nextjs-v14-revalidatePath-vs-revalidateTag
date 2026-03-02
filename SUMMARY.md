@@ -2,25 +2,39 @@
 
 ## 1. Next.js のキャッシュ構造
 
-Next.js には独立した2層のキャッシュがある。
+Next.js には独立した3層のキャッシュがある。
 
-```
-リクエスト
-  │
-  ▼
-Full Route Cache（サーバー側）
-  ページ全体のHTMLをキャッシュする。
-  revalidatePath が無効化する対象。
-  │
-  ▼
-Data Cache（サーバー側）
-  fetch() または unstable_cache() の結果をキャッシュする。
-  revalidateTag が無効化する対象。
-  │
-  ▼
-Router Cache（クライアント側）
-  ブラウザのメモリ上に保持されるページのキャッシュ。
-  router.refresh() が無効化する対象。
+```mermaid
+sequenceDiagram
+    participant B as ブラウザ
+    participant RC as Router Cache（クライアント）
+    participant FRC as Full Route Cache（サーバー）
+    participant DC as Data Cache（サーバー）
+    participant FS as JSONファイル
+
+    B->>RC: ページ要求
+    alt Router Cache HIT
+        RC-->>B: キャッシュから即表示
+    else Router Cache MISS
+        RC->>FRC: サーバーへ転送
+        alt Full Route Cache HIT
+            FRC-->>B: キャッシュHTMLを返す
+        else Full Route Cache MISS（または force-dynamic）
+            FRC->>DC: データ取得
+            alt Data Cache HIT
+                DC-->>FRC: キャッシュデータを返す
+            else Data Cache MISS
+                DC->>FS: fs.readFileSync()
+                FS-->>DC: JSONデータ
+                DC-->>FRC: データを返す
+            end
+            FRC-->>B: 生成したHTMLを返す
+        end
+    end
+
+    Note over RC: router.refresh() で無効化
+    Note over FRC: revalidatePath() で無効化
+    Note over DC: revalidateTag() で無効化
 ```
 
 ---
@@ -34,16 +48,29 @@ Router Cache（クライアント側）
 
 ### 振る舞い
 
-```
-revalidatePath("/notification") を呼ぶ
-  ↓
-"/notification" の Full Route Cache が削除される
-  ↓
-次回アクセス時にサーバーが NotificationPage を再実行する
-  ↓
-getAllNotifications() → fs.readFileSync() → 最新のJSONを読む
-  ↓
-最新の通知一覧がレンダリングされる
+```mermaid
+sequenceDiagram
+    participant Page as NotificationDetailPage
+    participant NC as next/cache
+    participant FRC as Full Route Cache
+    participant S as サーバー
+    participant FS as JSONファイル
+    participant B as ブラウザ
+
+    Page->>NC: revalidatePath("/notification")
+    NC->>FRC: "/notification" のキャッシュを削除
+    Note over FRC: エントリが削除される
+
+    Page->>NC: revalidatePath("/embed/notification")
+    NC->>FRC: "/embed/notification" のキャッシュを削除
+    Note over FRC: エントリが削除される
+
+    B->>S: GET /notification
+    S->>FRC: キャッシュ確認
+    Note over FRC: MISS のため再実行
+    S->>FS: getAllNotifications() → readFileSync()
+    FS-->>S: 最新のJSON
+    S-->>B: 最新の通知一覧HTML
 ```
 
 ### 特徴
@@ -63,16 +90,28 @@ getAllNotifications() → fs.readFileSync() → 最新のJSONを読む
 
 ### 振る舞い（unstable_cache を使っている場合）
 
-```
-unstable_cache(fn, key, { tags: ["notifications"] }) でキャッシュされたデータがある場合:
+```mermaid
+sequenceDiagram
+    participant Page as NotificationDetailPage
+    participant NC as next/cache
+    participant DC as Data Cache
+    participant S as サーバー
+    participant FS as JSONファイル
+    participant B as ブラウザ
 
-revalidateTag("notifications") を呼ぶ
-  ↓
-"notifications" タグの Data Cache エントリが削除される
-  ↓
-次回 getAllNotifications() が呼ばれたとき fn が再実行される
-  ↓
-最新のJSONが読まれる
+    Note over DC: "notifications" タグで<br/>キャッシュ済みのデータがある状態
+
+    Page->>NC: revalidateTag("notifications")
+    NC->>DC: "notifications" タグのエントリを削除
+    Note over DC: エントリが削除される
+
+    B->>S: GET /notification
+    S->>DC: getAllNotifications()（タグ確認）
+    Note over DC: MISS のため再実行
+    DC->>FS: readFileSync()
+    FS-->>DC: 最新のJSON
+    DC-->>S: 最新データ（再キャッシュ保存）
+    S-->>B: 最新の通知一覧HTML
 ```
 
 ### 特徴
@@ -132,14 +171,17 @@ export function markAsRead(id: string): void {
 
 ### 変更後に revalidateTag が行っている処理
 
-```
-revalidateTag("notifications") を呼ぶ
-  ↓
-Data Cache で "notifications" タグのエントリを探す
-  ↓
-エントリが存在しない（unstable_cache を使っていないため）
-  ↓
-何も無効化されない（ノーオペレーション）
+```mermaid
+sequenceDiagram
+    participant M as markAsRead()
+    participant NC as next/cache
+    participant DC as Data Cache
+
+    M->>NC: revalidateTag("notifications")
+    NC->>DC: "notifications" タグのエントリを検索
+    Note over DC: エントリが存在しない<br/>（unstable_cache 未使用）
+    DC-->>NC: 対象なし
+    Note over NC: 何も無効化されない<br/>（ノーオペレーション）
 ```
 
 ### ページが正しく更新される理由
@@ -147,16 +189,21 @@ Data Cache で "notifications" タグのエントリを探す
 `revalidateTag` は何もしていないが、ページは正しく更新される。
 理由は `force-dynamic` が Full Route Cache を完全に無効化しているためである。
 
-```
-ブラウザが /notification にアクセスする
-  ↓
-force-dynamic により Full Route Cache を参照しない
-  ↓
-サーバーが NotificationPage を毎回再実行する
-  ↓
-getAllNotifications() → fs.readFileSync() → 最新のJSONを読む
-  ↓
-最新の既読状態が反映されたページが返る
+```mermaid
+sequenceDiagram
+    participant B as ブラウザ
+    participant FRC as Full Route Cache
+    participant S as サーバー
+    participant FS as JSONファイル
+
+    Note over FRC: force-dynamic により<br/>Full Route Cache は常に無効
+
+    B->>S: GET /notification
+    S->>FRC: キャッシュ確認
+    Note over FRC: force-dynamic のため<br/>常に MISS として扱う
+    S->>FS: getAllNotifications() → readFileSync()
+    FS-->>S: 最新のJSON（既読状態含む）
+    S-->>B: 最新の通知一覧HTML
 ```
 
 ### 障害が発生するか
@@ -181,22 +228,38 @@ export const getAllNotifications = unstable_cache(() => readNotifications(), ["n
 
 この構成にした場合の動作:
 
-```
-getAllNotifications() が初回呼ばれる
-  ↓
-readNotifications() の結果が "notifications" タグで Data Cache に保存される
+```mermaid
+sequenceDiagram
+    participant B as ブラウザ
+    participant S as サーバー
+    participant DC as Data Cache
+    participant FS as JSONファイル
 
-markAsRead() が呼ばれる
-  ↓
-writeNotifications() でJSONを更新
-  ↓
-revalidateTag("notifications") で Data Cache のエントリを削除
+    Note over DC: 初回アクセス時（キャッシュなし）
 
-次回 getAllNotifications() が呼ばれる
-  ↓
-キャッシュが存在しないため readNotifications() を再実行
-  ↓
-最新のJSONが読まれる
+    B->>S: GET /notification
+    S->>DC: getAllNotifications()（"notifications" タグ付き）
+    Note over DC: MISS
+    DC->>FS: readFileSync()
+    FS-->>DC: JSONデータ
+    DC-->>S: データを返す
+    Note over DC: "notifications" タグで<br/>キャッシュに保存
+    S-->>B: HTMLを返す
+
+    Note over FS: markAsRead() 呼び出し
+
+    S->>FS: writeFileSync()（JSON更新）
+    S->>DC: revalidateTag("notifications")
+    Note over DC: "notifications" タグの<br/>キャッシュが削除される
+
+    B->>S: 次回 GET /notification
+    S->>DC: getAllNotifications()
+    Note over DC: MISS（削除されたため）
+    DC->>FS: readFileSync()
+    FS-->>DC: 最新のJSON
+    DC-->>S: 最新データ
+    Note over DC: 再キャッシュ保存
+    S-->>B: 最新のHTMLを返す
 ```
 
 ただし `unstable_cache` を使う場合は `force-dynamic` との組み合わせに注意が必要である。

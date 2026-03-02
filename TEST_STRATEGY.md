@@ -6,12 +6,17 @@
 Node.jsプロセス単体（Vitestのnode環境）では呼び出しても例外が発生するか、
 またはno-op（何もしない）として扱われる。
 
-```
-Next.jsランタイムが存在しない環境で revalidatePath("/notification") を呼ぶ
-  ↓
-Next.jsのキャッシュ管理レイヤーが初期化されていない
-  ↓
-実際のキャッシュ無効化は行われない（またはエラーになる）
+```mermaid
+sequenceDiagram
+    participant T as Vitestテスト
+    participant N as notifications.ts
+    participant NC as next/cache（Next.jsランタイム）
+
+    T->>N: markAsRead("1") を呼ぶ
+    N->>NC: revalidateTag("notifications")
+    Note over NC: Next.jsランタイムが<br/>初期化されていない
+    NC-->>N: 例外 または ノーオペレーション
+    Note over T: キャッシュ無効化を<br/>検証できない
 ```
 
 このため、これらの関数が「実際にキャッシュを無効化したか」という事実は
@@ -75,14 +80,24 @@ export function revalidateTag(): void {}
 
 ### このスタブが許容される理由
 
-ユニットテストで確認したいのは以下である：
+```mermaid
+sequenceDiagram
+    participant T as Vitestテスト
+    participant N as notifications.ts
+    participant Stub as next/cache（スタブ）
+    participant FS as JSONファイル
 
-```
-markAsRead("1") を呼ぶ
-  ↓
-JSONファイルに isRead: true が書き込まれる  ← ここを検証する
-  ↓
-revalidateTag("notifications") が呼ばれる  ← ここはスタブでよい
+    T->>N: markAsRead("1")
+    N->>FS: writeFileSync()（isRead: true を書き込む）
+    N->>Stub: revalidateTag("notifications")
+    Note over Stub: no-op（何もしない）
+    Stub-->>N: void
+
+    T->>N: getNotificationById("1")
+    N->>FS: readFileSync()
+    FS-->>N: isRead: true のデータ
+    N-->>T: Notification
+    Note over T: isRead が true であることを確認 ✓
 ```
 
 `revalidateTag` が呼ばれたかどうかは「副作用の呼び出し有無」であり、
@@ -127,40 +142,69 @@ expect(nextCache.revalidateTag).toHaveBeenCalledWith("notifications");
 E2Eテストでは Next.js サーバーが実際に動いているため、
 キャッシュの挙動を画面越しに検証できる。
 
-### 検証の流れ（通知詳細 → 一覧への戻り）
+### 通知詳細 → 一覧への戻り
 
+```mermaid
+sequenceDiagram
+    participant PW as Playwright
+    participant B as ブラウザ
+    participant S as Next.jsサーバー
+    participant FS as JSONファイル
+
+    PW->>B: page.goto("/notification")
+    B->>S: GET /notification
+    S->>FS: getAllNotifications()
+    FS-->>S: [通知1: 未読, ...]
+    S-->>B: HTML
+    PW->>B: read-status-1 が「未読」であることを確認 ✓
+
+    PW->>B: notification-link-1 をクリック
+    B->>S: GET /notification/1
+    S->>FS: getNotificationById("1")
+    S->>FS: markAsRead("1") → writeFileSync()
+    S-->>B: HTML（既読状態）
+    PW->>B: detail-read-status が「既読」であることを確認 ✓
+
+    PW->>B: back-to-list-button をクリック
+    Note over B: window.location.href = "/notification"<br/>（ハードナビゲーション）
+    B->>S: GET /notification
+    S->>FS: getAllNotifications()
+    FS-->>S: [通知1: 既読, ...]
+    S-->>B: HTML
+    PW->>B: read-status-1 が「既読」であることを確認 ✓
 ```
-1. /notification にアクセスし、通知1が「未読」であることを確認する
 
-2. 通知1のリンクをクリックして /notification/1 に遷移する
-   └ サーバーが NotificationDetailPage を実行する
-   └ markAsRead("1") → JSONに書き込み → revalidateTag("notifications")
+### ブラウザバック
 
-3. 「通知一覧に戻る」ボタンをクリックする
-   └ window.location.href = "/notification"（ハードナビゲーション）
-   └ サーバーが NotificationPage を再実行する
-   └ getAllNotifications() → JSONを読む → 既読状態が返る
+```mermaid
+sequenceDiagram
+    participant PW as Playwright
+    participant B as ブラウザ
+    participant S as Next.jsサーバー
+    participant FS as JSONファイル
 
-4. 通知1のラベルが「既読」に変化していることを確認する
+    PW->>B: page.goto("/notification")
+    B->>S: GET /notification
+    S-->>B: HTML（通知1: 未読）
+    PW->>B: read-status-1 が「未読」であることを確認 ✓
+
+    PW->>B: notification-link-1 をクリック
+    B->>S: GET /notification/1
+    S->>FS: markAsRead("1") → writeFileSync()
+    S-->>B: HTML（既読状態）
+
+    PW->>B: page.goBack()
+    Note over B: popstate イベント発生
+    Note over B: RefreshOnBack が<br/>window.location.reload() を呼ぶ
+    B->>S: GET /notification（リロード）
+    S->>FS: getAllNotifications()
+    FS-->>S: [通知1: 既読, ...]
+    S-->>B: HTML
+    PW->>B: read-status-1 が「既読」であることを確認 ✓
 ```
 
 このテストが成功することは、データ書き込み・ページ再レンダリング・
 画面反映の全体が正しく機能していることを保証する。
-
-### ブラウザバックのテスト
-
-```
-1. /notification にアクセスし、通知1が「未読」であることを確認する
-
-2. 通知1のリンクをクリックして /notification/1 に遷移する
-   └ markAsRead("1") が実行される
-
-3. page.goBack() でブラウザバックする
-   └ RefreshOnBack の popstate リスナーが window.location.reload() を呼ぶ
-   └ サーバーが NotificationPage を再実行する
-
-4. 通知1のラベルが「既読」に変化していることを確認する
-```
 
 ---
 
@@ -186,6 +230,24 @@ afterAll(() => {
 beforeEach(() => {
   fs.writeFileSync(dataFilePath, JSON.stringify(testNotificationList, null, 2), "utf-8");
 });
+```
+
+```mermaid
+sequenceDiagram
+    participant TS as テストスイート
+    participant T as 各テスト
+    participant FS as JSONファイル
+
+    TS->>FS: beforeAll: readFileSync()（元の内容を退避）
+
+    loop 各テストごと
+        TS->>FS: beforeEach: writeFileSync()（既知の初期状態に書き戻す）
+        TS->>T: テスト実行
+        T->>FS: 読み書き（テスト内容による）
+        T-->>TS: テスト終了
+    end
+
+    TS->>FS: afterAll: writeFileSync()（元の内容に復元）
 ```
 
 **この方針が必要な理由:**
