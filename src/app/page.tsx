@@ -9,6 +9,10 @@ const pages = [
     href: "/notification-no-op-revalidate",
     label: "通知一覧（revalidateTag no-op・router.refresh() デモ）",
   },
+  {
+    href: "/notification-with-use-client",
+    label: "通知一覧（use client フェッチ・コンポーネント単位キャッシュクリアデモ）",
+  },
   { href: "/embed/notification", label: "埋め込み通知一覧" },
 ];
 
