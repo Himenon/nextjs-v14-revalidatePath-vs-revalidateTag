@@ -23,7 +23,7 @@ export default function NotificationPage() {
       >
         <h1 style={{ margin: 0 }}>通知一覧</h1>
         <form action={markAllNotificationsAsUnread}>
-          <button type="submit" style={buttonStyle}>
+          <button type="submit" style={buttonStyle} data-testid="mark-all-unread-button">
             一括未読にする
           </button>
         </form>

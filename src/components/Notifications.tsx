@@ -9,9 +9,14 @@ export function Notifications({ notifications }: Props) {
   return (
     <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
       {notifications.map((notification) => (
-        <li key={notification.id} style={listItemStyle}>
+        <li
+          key={notification.id}
+          style={listItemStyle}
+          data-testid={`notification-item-${notification.id}`}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <span
+              data-testid={`read-status-${notification.id}`}
               style={{
                 ...badgeStyle,
                 backgroundColor: notification.isRead ? "#e0e0e0" : "#1976d2",
@@ -20,7 +25,11 @@ export function Notifications({ notifications }: Props) {
             >
               {notification.isRead ? "既読" : "未読"}
             </span>
-            <Link href={`/notification/${notification.id}`} style={linkStyle}>
+            <Link
+              href={`/notification/${notification.id}`}
+              style={linkStyle}
+              data-testid={`notification-link-${notification.id}`}
+            >
               {notification.title}
             </Link>
           </div>

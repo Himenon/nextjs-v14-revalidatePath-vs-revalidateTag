@@ -1,17 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 export function BackToListButton() {
-  const router = useRouter();
-
   const handleClick = () => {
-    router.refresh();
-    router.push("/notification");
+    window.location.href = "/notification";
   };
 
   return (
-    <button onClick={handleClick} style={buttonStyle}>
+    <button onClick={handleClick} style={buttonStyle} data-testid="back-to-list-button">
       ← 通知一覧に戻る
     </button>
   );

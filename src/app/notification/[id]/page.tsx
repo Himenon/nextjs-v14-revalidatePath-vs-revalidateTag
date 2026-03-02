@@ -3,7 +3,7 @@ import "server-only";
 import { getNotificationById, markAsRead } from "../../../lib/notifications";
 import { NotificationDetail } from "../../../components/NotificationDetail";
 import { BackToListButton } from "../../../components/BackToListButton";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { notFound } from "next/navigation";
 
 type Props = {

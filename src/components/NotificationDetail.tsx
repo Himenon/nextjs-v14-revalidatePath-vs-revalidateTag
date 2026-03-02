@@ -10,6 +10,7 @@ export function NotificationDetail({ notification }: Props) {
       <header style={{ marginBottom: "16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
           <span
+            data-testid="detail-read-status"
             style={{
               ...badgeStyle,
               backgroundColor: notification.isRead ? "#e0e0e0" : "#1976d2",
