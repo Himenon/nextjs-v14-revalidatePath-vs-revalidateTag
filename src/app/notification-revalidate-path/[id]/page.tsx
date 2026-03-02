@@ -26,11 +26,21 @@ export default function NotificationDetailPage({ params }: Props) {
   }
 
   if (!notification.isRead) {
+    // ⚠️ 関心の分離違反: ページ（UI層）がデータ層の副作用（既読への書き込み）を直接実行している。
+    // データの変更責務はデータ層（notifications-revalidate-path.ts）が持つべきだが、
+    // キャッシュ無効化を呼び出し側に委ねる設計のため、ここで呼ぶ以外に選択肢がない。
     markAsRead(params.id);
-    // このページが通知データを表示する全ページの URL を列挙する。
-    // 新しいページが追加されるたびにここへの追記が必要になる。
+
+    // ⚠️ 関心の分離違反: 通知詳細ページが「通知データを表示する他の全ページの URL」を知っている。
+    // 詳細ページは自身の表示責務だけを持つべきで、他ページの存在を知るべきではない。
+    // 通知一覧ページ・埋め込みページ・revalidatePath 版一覧ページが増えるたびに
+    // この詳細ページも修正が必要になる（変更理由が複数存在する = 単一責任原則の違反）。
     revalidatePath("/notification");
+    // ⚠️ 関心の分離違反: revalidatePath 版の一覧ページが存在することを詳細ページが把握している。
+    // このルートが追加・削除されるたびに詳細ページの修正が必要になる。
     revalidatePath("/notification-revalidate-path");
+    // ⚠️ 関心の分離違反: 埋め込みページの存在を詳細ページが把握している。
+    // 埋め込みページが削除・リネームされても、このコードは残り続ける可能性がある（削除漏れ）。
     revalidatePath("/embed/notification");
   }
 

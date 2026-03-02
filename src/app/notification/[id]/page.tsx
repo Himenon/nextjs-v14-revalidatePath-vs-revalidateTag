@@ -19,6 +19,9 @@ export default function NotificationDetailPage({ params }: Props) {
   }
 
   if (!notification.isRead) {
+    // ✅️ ページは「既読にする」という意図だけを表明している。
+    // revalidatePath のように他ページの URL を列挙する必要がなく、
+    // 通知データを表示する新しいページが追加されてもこのファイルは変更不要。
     markAsRead(params.id);
   }
 
