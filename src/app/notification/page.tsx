@@ -7,6 +7,7 @@ import { Notifications } from "../../components/Notifications";
 import { RefreshOnBack } from "../../components/RefreshOnBack";
 import { BackToTopLink } from "../../components/BackToTopLink";
 import { markAllNotificationsAsUnread } from "../actions/markAllAsUnread";
+import { mainStyle } from "../../styles/common";
 
 export default function NotificationPage() {
   const notifications = getAllNotifications();
@@ -37,16 +38,10 @@ export default function NotificationPage() {
 
 const buttonStyle: React.CSSProperties = {
   padding: "6px 14px",
-  border: "1px solid #1976d2",
+  border: "1px solid var(--color-primary)",
   borderRadius: "4px",
-  backgroundColor: "#fff",
-  color: "#1976d2",
+  backgroundColor: "var(--color-bg)",
+  color: "var(--color-primary)",
   fontSize: "14px",
   cursor: "pointer",
-};
-
-const mainStyle: React.CSSProperties = {
-  maxWidth: "720px",
-  margin: "0 auto",
-  padding: "32px 16px",
 };

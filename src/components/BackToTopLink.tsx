@@ -11,6 +11,6 @@ export function BackToTopLink() {
 const linkStyle: React.CSSProperties = {
   display: "inline-block",
   marginBottom: "24px",
-  color: "#1976d2",
+  color: "var(--color-primary)",
   fontSize: "14px",
 };

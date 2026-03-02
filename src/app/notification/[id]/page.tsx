@@ -4,8 +4,9 @@ import { getNotificationById, markAsRead } from "../../../lib/notifications";
 import { NotificationDetail } from "../../../components/NotificationDetail";
 import { BackToListButton } from "../../../components/BackToListButton";
 import { BackToTopLink } from "../../../components/BackToTopLink";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import { mainStyle } from "../../../styles/common";
 
 type Props = {
   params: { id: string };
@@ -34,9 +35,3 @@ export default function NotificationDetailPage({ params }: Props) {
     </main>
   );
 }
-
-const mainStyle: React.CSSProperties = {
-  maxWidth: "720px",
-  margin: "0 auto",
-  padding: "32px 16px",
-};

@@ -17,7 +17,7 @@ const buttonStyle: React.CSSProperties = {
   marginBottom: "24px",
   background: "none",
   border: "none",
-  color: "#1976d2",
+  color: "var(--color-primary)",
   fontSize: "14px",
   cursor: "pointer",
   padding: 0,

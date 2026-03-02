@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { mainStyle } from "../styles/common";
 
 const pages = [
   { href: "/notification", label: "通知一覧" },
@@ -22,12 +23,6 @@ export default function Home() {
   );
 }
 
-const mainStyle: React.CSSProperties = {
-  maxWidth: "720px",
-  margin: "0 auto",
-  padding: "32px 16px",
-};
-
 const listStyle: React.CSSProperties = {
   listStyle: "none",
   padding: 0,
@@ -37,7 +32,7 @@ const listStyle: React.CSSProperties = {
 };
 
 const linkStyle: React.CSSProperties = {
-  color: "#1976d2",
+  color: "var(--color-primary)",
   textDecoration: "none",
   fontSize: "16px",
 };

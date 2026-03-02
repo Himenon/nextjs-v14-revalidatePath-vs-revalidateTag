@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Notification } from "../lib/notifications";
+import { ReadStatusBadge } from "./ReadStatusBadge";
 
 type Props = {
   notifications: Notification[];
@@ -15,16 +16,10 @@ export function Notifications({ notifications }: Props) {
           data-testid={`notification-item-${notification.id}`}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span
-              data-testid={`read-status-${notification.id}`}
-              style={{
-                ...badgeStyle,
-                backgroundColor: notification.isRead ? "#e0e0e0" : "#1976d2",
-                color: notification.isRead ? "#555" : "#fff",
-              }}
-            >
-              {notification.isRead ? "既読" : "未読"}
-            </span>
+            <ReadStatusBadge
+              isRead={notification.isRead}
+              testId={`read-status-${notification.id}`}
+            />
             <Link
               href={`/notification/${notification.id}`}
               style={linkStyle}
@@ -41,20 +36,11 @@ export function Notifications({ notifications }: Props) {
 
 const listItemStyle: React.CSSProperties = {
   padding: "16px",
-  borderBottom: "1px solid #e0e0e0",
-};
-
-const badgeStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: "12px",
-  fontSize: "12px",
-  fontWeight: "bold",
-  whiteSpace: "nowrap",
+  borderBottom: "1px solid var(--color-border)",
 };
 
 const linkStyle: React.CSSProperties = {
-  color: "#1976d2",
+  color: "var(--color-primary)",
   textDecoration: "none",
   fontSize: "16px",
 };
