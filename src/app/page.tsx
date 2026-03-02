@@ -4,6 +4,7 @@ import { mainStyle } from "../styles/common";
 const pages = [
   { href: "/notification", label: "通知一覧（revalidateTag）" },
   { href: "/notification-revalidate-path", label: "通知一覧（revalidatePath）" },
+  { href: "/notification-no-revalidate", label: "通知一覧（キャッシュ無効化なし・失敗デモ）" },
   { href: "/embed/notification", label: "埋め込み通知一覧" },
 ];
 
