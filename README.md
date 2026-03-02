@@ -18,6 +18,7 @@
 /notification                    ← revalidateTag（本実装）
 /notification-revalidate-path    ← revalidatePath（比較用）
 /notification-no-revalidate      ← 無効化なし（失敗デモ）
+/notification-no-op-revalidate   ← revalidateTag が no-op・router.refresh() で更新（デモ）
 /embed/notification              ← 埋め込み表示（revalidateTag の恩恵を受ける）
 ```
 
@@ -45,6 +46,25 @@ markAsRead(params.id);
 revalidatePath("/notification");
 revalidatePath("/notification-revalidate-path"); // ← 追加したら全箇所に追記が必要
 revalidatePath("/embed/notification");
+```
+
+## Next.js キャッシュ層の構造
+
+```
+ブラウザ（'use client'）
+  └─ Router Cache
+       ├─ 訪問済みページの RSC ペイロードをブラウザが保持する
+       ├─ router.refresh() で破棄できる
+       └─ revalidatePath / revalidateTag では破棄できない
+
+サーバー（'use server'）
+  ├─ Full Route Cache
+  │    ├─ サーバーがレンダリング済みの HTML / RSC ペイロードを保持する
+  │    ├─ force-dynamic を設定すると生成されない（毎回再レンダリング）
+  │    └─ revalidatePath / revalidateTag で破棄できる
+  └─ Data Cache
+       ├─ unstable_cache や fetch + next: { tags } でタグを付けて保存したデータを保持する
+       └─ revalidateTag(タグ名) でそのタグが付いた保存データを削除できる
 ```
 
 ## revalidateTag の実装上の注意点
