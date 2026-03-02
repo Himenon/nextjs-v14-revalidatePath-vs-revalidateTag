@@ -2,6 +2,9 @@ import "server-only";
 
 import fs from "fs";
 import path from "path";
+import { revalidateTag } from "next/cache";
+
+export const NOTIFICATIONS_CACHE_TAG = "notifications";
 
 export type Notification = {
   id: string;
@@ -38,10 +41,12 @@ export function markAsRead(id: string): void {
     return n;
   });
   writeNotifications(updated);
+  revalidateTag(NOTIFICATIONS_CACHE_TAG);
 }
 
 export function markAllAsUnread(): void {
   const notifications = readNotifications();
   const updated = notifications.map((n): Notification => ({ ...n, isRead: false }));
   writeNotifications(updated);
+  revalidateTag(NOTIFICATIONS_CACHE_TAG);
 }

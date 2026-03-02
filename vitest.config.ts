@@ -12,8 +12,10 @@ const serverOnlyEmptyPath = path.join(path.dirname(require.resolve("server-only"
 export default defineConfig({
   test: {
     environment: "node",
+    exclude: ["e2e/**", "node_modules/**"],
     alias: {
       "server-only": serverOnlyEmptyPath,
+      "next/cache": path.resolve(__dirname, "src/__stubs__/next-cache.ts"),
     },
   },
 });
