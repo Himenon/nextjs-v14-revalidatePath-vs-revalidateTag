@@ -39,3 +39,9 @@ export function markAsRead(id: string): void {
   });
   writeNotifications(updated);
 }
+
+export function markAllAsUnread(): void {
+  const notifications = readNotifications();
+  const updated = notifications.map((n): Notification => ({ ...n, isRead: false }));
+  writeNotifications(updated);
+}
