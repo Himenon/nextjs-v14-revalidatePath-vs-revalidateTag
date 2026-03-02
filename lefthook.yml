@@ -1,0 +1,10 @@
+pre-commit:
+  jobs:
+    - name: oxfmt
+      skip:
+        - merge
+      run: oxfmt
+      stage_fixed: true
+    - name: oxlint
+      run: oxlint
+      stage_fixed: true
