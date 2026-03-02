@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import assert from "node:assert";
 import fs from "fs";
+import path from "path";
 
-// server-onlyはNext.jsのサーバーサイドバンドルでのみ動作するパッケージだが、
-// VitestはNode.js環境で実行されるため空モジュールに差し替える。
-// スコープ: このテストファイル全体。
-vi.mock("server-only", () => ({}));
+// server-onlyのモックは不要。
+// vitest.config.tsでresolve.conditions: ["react-server"]を設定しているため、
+// server-onlyはサーバー環境と同じ空モジュール(empty.js)として解決される。
 
 import type { Notification } from "./notifications";
 import {
@@ -15,7 +15,9 @@ import {
   markAsRead,
 } from "./notifications";
 
-const initialNotificationList: Notification[] = [
+const dataFilePath = path.join(process.cwd(), "src/data/notifications.json");
+
+const testNotificationList: Notification[] = [
   {
     id: "1",
     title: "システムメンテナンスのお知らせ",
@@ -26,24 +28,21 @@ const initialNotificationList: Notification[] = [
   { id: "3", title: "利用規約改定のお知らせ", body: "利用規約が改定されました。", isRead: true },
 ];
 
+let originalFileContent: string;
+
+beforeAll(() => {
+  originalFileContent = fs.readFileSync(dataFilePath, "utf-8");
+});
+
+afterAll(() => {
+  fs.writeFileSync(dataFilePath, originalFileContent, "utf-8");
+});
+
+beforeEach(() => {
+  fs.writeFileSync(dataFilePath, JSON.stringify(testNotificationList, null, 2), "utf-8");
+});
+
 describe("通知データ操作", () => {
-  let inMemoryNotifications: Notification[] = [];
-
-  beforeEach(() => {
-    // fs.readFileSyncとfs.writeFileSyncにスパイを設置し、メモリ上の通知リストを使う。
-    // 目的: src/data/notifications.jsonへの実際の読み書きを行わず、各テストが独立した通知状態で動作できるようにする。
-    // スコープ: このdescribeブロック内の各テスト。
-    inMemoryNotifications = structuredClone(initialNotificationList);
-    vi.spyOn(fs, "readFileSync").mockImplementation(() => JSON.stringify(inMemoryNotifications));
-    vi.spyOn(fs, "writeFileSync").mockImplementation((_file, data) => {
-      inMemoryNotifications = JSON.parse(data as string) as Notification[];
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe("getAllNotifications: 通知一覧の取得", () => {
     it("通知一覧画面に表示される全ての通知を返す", () => {
       const notifications: Notification[] = getAllNotifications();
@@ -120,7 +119,6 @@ describe("通知データ操作", () => {
     });
 
     it("全通知を未読にした後、通知一覧を取得すると未読状態が反映されている", () => {
-      // DESIGN.md要件: 一括未読ボタンを押した後、通知一覧に未読状態が表示されること
       markAllAsUnread();
 
       const notifications: Notification[] = getAllNotifications();
