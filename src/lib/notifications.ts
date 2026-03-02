@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { revalidateTag } from "next/cache";
 
-export const NOTIFICATIONS_CACHE_TAG = "notifications";
+const NOTIFICATIONS_CACHE_TAG = "notifications";
 
 export type Notification = {
   id: string;

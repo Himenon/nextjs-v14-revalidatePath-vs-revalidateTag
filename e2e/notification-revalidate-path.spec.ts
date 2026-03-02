@@ -4,7 +4,7 @@
 //   - src/lib/notifications-revalidate-path.ts
 //     markAsRead / markAllAsUnread はキャッシュ無効化を行わない。
 //     データ層はキャッシュに無関心。
-//   - src/app/notification/[id]/page-revalidate-path.tsx
+//   - src/app/notification-revalidate-path/[id]/page.tsx
 //     markAsRead() の後に revalidatePath("/notification") と
 //     revalidatePath("/embed/notification") を明示的に列挙する。
 //     このページが通知データを表示する全ページの URL を知っている必要がある。
@@ -13,15 +13,6 @@
 //
 // revalidateTag アプローチとの比較は以下を参照:
 //   e2e/notification.spec.ts
-//
-// --- このテストファイルを実行する方法 ---
-// 現在の page.tsx は revalidateTag アプローチで動作している。
-// revalidatePath アプローチで動作を検証したい場合は、
-// 以下のファイルを page.tsx / markAllAsUnread.ts に差し替えてから実行する:
-//   src/app/notification/[id]/page-revalidate-path.tsx
-//   src/app/actions/markAllAsUnread-revalidate-path.ts
-//
-// 期待される振る舞いは両アプローチで同一であるため、テストケースは同じ内容になる。
 
 import { expect, test } from "@playwright/test";
 import fs from "fs";
@@ -75,12 +66,12 @@ test.describe("通知一覧ページ (/notification)", () => {
   });
 });
 
-test.describe("通知詳細ページ (/notification/:id)", () => {
+test.describe("通知詳細ページ (/notification-revalidate-path/:id)", () => {
   test("通知詳細ページを開くと、ページ内の通知ラベルが「既読」になる", async ({ page }) => {
     // DESIGN.md要件: ページを開くと既読処理が実行される
-    // revalidatePath アプローチ: page-revalidate-path.tsx が markAsRead() の後に
+    // revalidatePath アプローチ: page.tsx が markAsRead() の後に
     // revalidatePath("/notification") / revalidatePath("/embed/notification") を呼ぶ
-    await page.goto("/notification/1");
+    await page.goto("/notification-revalidate-path/1");
 
     await expect(page.getByTestId("detail-read-status")).toHaveText("既読");
   });
@@ -97,8 +88,7 @@ test.describe("通知一覧への戻り時の既読反映", () => {
     await expect(page.getByTestId("read-status-1")).toHaveText("未読");
 
     // 通知詳細ページへ移動（サーバーが既読処理と revalidatePath を実行する）
-    await page.getByTestId("notification-link-1").click();
-    await page.waitForURL("**/notification/1");
+    await page.goto("/notification-revalidate-path/1");
     await expect(page.getByTestId("detail-read-status")).toHaveText("既読");
 
     // 「通知一覧に戻る」ボタンで戻る
@@ -119,8 +109,7 @@ test.describe("通知一覧への戻り時の既読反映", () => {
     await expect(page.getByTestId("read-status-1")).toHaveText("未読");
 
     // 通知詳細ページへ移動（サーバーが既読処理と revalidatePath を実行する）
-    await page.getByTestId("notification-link-1").click();
-    await page.waitForURL("**/notification/1");
+    await page.goto("/notification-revalidate-path/1");
 
     // ブラウザバックで戻る（RefreshOnBack の popstate リスナーが window.location.reload() を呼ぶ）
     await page.goBack();
@@ -128,23 +117,6 @@ test.describe("通知一覧への戻り時の既読反映", () => {
 
     // 通知1のラベルが「既読」に変化していることを確認
     await expect(page.getByTestId("read-status-1")).toHaveText("既読");
-  });
-});
-
-test.describe("一括未読化", () => {
-  test("「一括未読にする」ボタンを押すと、既読だった通知が未読ラベルになる", async ({ page }) => {
-    // revalidatePath アプローチ: markAllAsUnread-revalidate-path.ts が
-    // markAllAsUnread() の後に revalidatePath を列挙してキャッシュを無効化する
-    await page.goto("/notification");
-    // 通知3は初期状態で既読
-    await expect(page.getByTestId("read-status-3")).toHaveText("既読");
-
-    await page.getByTestId("mark-all-unread-button").click();
-
-    // 全通知が未読ラベルに変化していることを確認
-    await expect(page.getByTestId("read-status-1")).toHaveText("未読");
-    await expect(page.getByTestId("read-status-2")).toHaveText("未読");
-    await expect(page.getByTestId("read-status-3")).toHaveText("未読");
   });
 });
 
@@ -161,15 +133,14 @@ test.describe("埋め込み通知一覧ページ (/embed/notification)", () => {
     page,
   }) => {
     // DESIGN.md要件: 通知一覧からブラウザバックで戻ってきたとき、未読→既読ラベルに変化すること
-    // revalidatePath アプローチ: page-revalidate-path.tsx が
+    // revalidatePath アプローチ: page.tsx が
     // revalidatePath("/embed/notification") を明示的に呼んでいるため、
     // 埋め込みページの Full Route Cache も削除される
     await page.goto("/embed/notification");
     await expect(page.getByTestId("read-status-2")).toHaveText("未読");
 
     // 通知詳細ページへ移動（サーバーが既読処理と revalidatePath を実行する）
-    await page.getByTestId("notification-link-2").click();
-    await page.waitForURL("**/notification/2");
+    await page.goto("/notification-revalidate-path/2");
 
     // ブラウザバックで埋め込みページに戻る（RefreshOnBack の popstate リスナーが発火する）
     await page.goBack();

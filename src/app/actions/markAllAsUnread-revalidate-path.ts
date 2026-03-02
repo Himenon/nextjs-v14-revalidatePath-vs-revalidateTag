@@ -14,5 +14,6 @@ export async function markAllNotificationsAsUnread(): Promise<void> {
   // このServer Action が通知データを表示する全ページの URL を列挙する。
   // 新しいページが追加されるたびにここへの追記が必要になる。
   revalidatePath("/notification");
+  revalidatePath("/notification-revalidate-path");
   revalidatePath("/embed/notification");
 }

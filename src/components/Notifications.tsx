@@ -4,9 +4,10 @@ import { ReadStatusBadge } from "./ReadStatusBadge";
 
 type Props = {
   notifications: Notification[];
+  basePath?: string;
 };
 
-export function Notifications({ notifications }: Props) {
+export function Notifications({ notifications, basePath = "/notification" }: Props) {
   return (
     <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
       {notifications.map((notification) => (
@@ -21,7 +22,7 @@ export function Notifications({ notifications }: Props) {
               testId={`read-status-${notification.id}`}
             />
             <Link
-              href={`/notification/${notification.id}`}
+              href={`${basePath}/${notification.id}`}
               style={linkStyle}
               data-testid={`notification-link-${notification.id}`}
             >

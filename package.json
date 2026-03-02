@@ -31,5 +31,11 @@
     "oxlint": "^1.50.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
+  },
+  "knip": {
+    "ignore": [
+      "src/__stubs__/**",
+      "src/lib/notifications-revalidate-path.ts"
+    ]
   }
 }
