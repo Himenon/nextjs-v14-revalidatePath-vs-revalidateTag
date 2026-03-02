@@ -3,6 +3,7 @@ import "server-only";
 import { getNotificationById, markAsRead } from "../../../lib/notifications";
 import { NotificationDetail } from "../../../components/NotificationDetail";
 import { BackToListButton } from "../../../components/BackToListButton";
+import { BackToTopLink } from "../../../components/BackToTopLink";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { notFound } from "next/navigation";
 
@@ -27,6 +28,7 @@ export default function NotificationDetailPage({ params }: Props) {
 
   return (
     <main style={mainStyle}>
+      <BackToTopLink />
       <BackToListButton />
       <NotificationDetail notification={updatedNotification} />
     </main>

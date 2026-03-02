@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { getAllNotifications } from "../../lib/notifications";
 import { Notifications } from "../../components/Notifications";
 import { RefreshOnBack } from "../../components/RefreshOnBack";
+import { BackToTopLink } from "../../components/BackToTopLink";
 import { markAllNotificationsAsUnread } from "../actions/markAllAsUnread";
 
 export default function NotificationPage() {
@@ -13,6 +14,7 @@ export default function NotificationPage() {
   return (
     <main style={mainStyle}>
       <RefreshOnBack />
+      <BackToTopLink />
       <div
         style={{
           display: "flex",
