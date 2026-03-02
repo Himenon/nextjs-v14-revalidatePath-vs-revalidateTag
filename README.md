@@ -19,16 +19,20 @@
 /notification-revalidate-path    ← revalidatePath（比較用）
 /notification-no-revalidate      ← 無効化なし（失敗デモ）
 /notification-no-op-revalidate   ← revalidateTag が no-op・router.refresh() で更新（デモ）
+/notification-with-use-client    ← use client フェッチ・コンポーネント単位キャッシュクリア（デモ）
 /embed/notification              ← 埋め込み表示（revalidateTag の恩恵を受ける）
 ```
 
 ## 実装ファイル対応
 
-| ルート                          | データ層                                   | キャッシュ無効化                                 |
-| ------------------------------- | ------------------------------------------ | ------------------------------------------------ |
-| `/notification`                 | `src/lib/notifications.ts`                 | `revalidateTag` をデータ層内で呼ぶ               |
-| `/notification-revalidate-path` | `src/lib/notifications-revalidate-path.ts` | ページ・Server Action が `revalidatePath` を列挙 |
-| `/notification-no-revalidate`   | `src/lib/notifications-revalidate-path.ts` | 呼ばない                                         |
+| ルート                           | ページ                                   | データ層                                   | キャッシュ無効化                                                       |
+| -------------------------------- | ---------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
+| `/notification`                  | `src/app/notification/`                  | `src/lib/notifications.ts`                 | `revalidateTag` をデータ層内で呼ぶ                                     |
+| `/notification-revalidate-path`  | `src/app/notification-revalidate-path/`  | `src/lib/notifications-revalidate-path.ts` | ページ・Server Action が `revalidatePath` を列挙                       |
+| `/notification-no-revalidate`    | `src/app/notification-no-revalidate/`    | `src/lib/notifications-revalidate-path.ts` | 呼ばない                                                               |
+| `/notification-no-op-revalidate` | `src/app/notification-no-op-revalidate/` | `src/lib/notifications.ts`                 | `revalidateTag` / `revalidatePath` は no-op・`router.refresh()` で更新 |
+| `/notification-with-use-client`  | `src/app/notification-with-use-client/`  | `src/app/api/notifications/`               | サーバーキャッシュを使わず Client Component の state のみ更新          |
+| `/embed/notification`            | `src/app/embed/notification/`            | `src/lib/notifications.ts`                 | `revalidateTag` をデータ層内で呼ぶ（`/notification` と共有）           |
 
 ## revalidateTag の設計上の利点
 
